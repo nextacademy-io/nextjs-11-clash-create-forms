@@ -21,7 +21,7 @@ export const ClashCard: React.FC<ClashCardProps> = ({ clash, onDetailsClicked })
     </h2>
     <div className="flex flex-row gap-3 flex-shrink-0">
       {clash.participants.map((peer) => (
-        <ProfilePicture key={peer.id} diameter={32} profileUrl={peer.pictureUrl} />
+        <ProfilePicture key={peer.id} diameter={32} profileUrl={peer.pictureUrl} peerId={peer.id} />
       ))}
     </div>
     <div className="flex-grow flex items-end justify-end">

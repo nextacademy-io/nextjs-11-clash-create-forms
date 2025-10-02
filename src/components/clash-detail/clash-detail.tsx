@@ -97,11 +97,13 @@ export const ClashDetail: React.FC<ClashDetailProps> = ({ clashId }) => {
             <div className="flex gap-2">
               {data.clash.participants.map((participant) => (
                 <div key={participant.id} className="flex flex-col items-center">
-                  <img
-                    src={participant.pictureUrl}
-                    alt={participant.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <Link href={`/peers/${participant.id}`}>
+                    <img
+                      src={participant.pictureUrl}
+                      alt={participant.name}
+                      className="w-12 h-12 rounded-full object-cover hover:opacity-70 transition-opacity duration-300 cursor-pointer"
+                    />
+                  </Link>
                   <span className="text-xs mt-1">{participant.name}</span>
                 </div>
               ))}
@@ -110,11 +112,13 @@ export const ClashDetail: React.FC<ClashDetailProps> = ({ clashId }) => {
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">Created by</h3>
             <div className="flex items-center gap-2">
-              <img
-                src={data.clash.createdByPeer.pictureUrl}
-                alt={data.clash.createdByPeer.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              <Link href={`/peers/${data.clash.createdByPeer.id}`}>
+                <img
+                  src={data.clash.createdByPeer.pictureUrl}
+                  alt={data.clash.createdByPeer.name}
+                  className="w-10 h-10 rounded-full object-cover hover:opacity-70 transition-opacity duration-300 cursor-pointer"
+                />
+              </Link>
               <span>{data.clash.createdByPeer.name}</span>
             </div>
           </div>

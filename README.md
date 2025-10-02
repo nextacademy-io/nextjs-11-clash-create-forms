@@ -116,12 +116,23 @@ Create simple page components that import and render the peer components:
 
 ### Explore the Peer API
 
-Before implementing the complete queries, explore the available schema:
+The GraphQL server provides the following peer-related queries:
 
-1. Open the GraphQL playground at `http://localhost:3000/graphql`
-2. Look for `peers` and `peer(id: ID!)` queries
-3. Examine the `Peer` type to understand available fields
-4. Common fields might include: `id`, `name`, `pictureUrl`, `bio`, `location`, `joinedDate`, `clashes`
+1. `peers: [Peer!]!` - Returns a list of all peers
+2. `peer(id: Int!): Peer!` - Returns a specific peer by ID (note: uses `Int!` not `ID!`)
+
+The `Peer` type includes the following fields:
+
+- `id: Int!` - Unique identifier
+- `name: String!` - Full name
+- `pictureUrl: String!` - Profile picture URL
+- `city: String!` - City location
+- `country: String!` - Country location
+- `gender: Gender!` - Gender enum
+- `clashes: [Clash!]!` - Associated clashes
+
+> [!TIP]
+> You can explore the full schema at `http://localhost:3000/graphql` in your GraphQL playground.
 
 ### Query Implementation Hints
 
@@ -129,14 +140,14 @@ The `GetPeers` query should:
 
 - Return a list of peers with basic information
 - Include fields like: `id`, `name`, `pictureUrl`
-- Optionally include summary fields for the list view
+- No variables needed (returns all peers)
 
 The `GetPeer` query should:
 
-- Accept an `id` variable of type `ID!`
-- Return detailed peer information
-- Include relationships like associated clashes
-- Handle cases where the peer doesn't exist
+- Accept an `id` variable of type `Int!` (not `ID!`)
+- Return detailed peer information including `city` and `country`
+- Include additional fields as needed for your UI
+- Handle error cases appropriately
 
 > [!TIP]
 > After updating your GraphQL queries, run `npm run codegen` to generate TypeScript types for server-side usage.
