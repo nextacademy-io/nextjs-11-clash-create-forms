@@ -1,278 +1,536 @@
-# Next.js Workshop: Peer List and Peer Detail as Server Components
+# Next.js Workshop: Clash Create - Forms, Server Actions and Validation
 
-In this task you'll implement peer listing and individual peer detail pages using [Next.js Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components). You'll learn how to fetch GraphQL data server-side, create dynamic routes with parameters, and build efficient server-rendered pages without client-side JavaScript.
+In this task you'll implement a clash creation form using [Next.js Forms and Server Actions](https://nextjs.org/docs/app/guides/forms). You'll learn how to handle form submissions, implement server-side mutations, add client-side validation with Zod, and create a seamless form experience that follows modern React patterns.
 
-## Server Components Overview
+## Forms and Server Actions Overview
 
-Before you proceed, make sure you're familiar with [Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) and understand the difference between Server and Client Components in Next.js.
+Before proceeding, familiarize yourself with Next.js form handling concepts:
 
-> [!IMPORTANT] > **Server Components vs Client Components**: Server Components run on the server and don't have access to browser APIs like `useState`, `useEffect`, or event handlers. They're perfect for data fetching and rendering static content. Client Components (marked with `'use client'`) run in the browser and handle interactivity.
+- **[Forms and Server Actions](https://nextjs.org/docs/app/guides/forms)** - Complete guide to form handling in Next.js
+- **[Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)** - Server-side form processing and mutations
+- **[Client Components](https://nextjs.org/docs/app/building-your-application/rendering/client-components)** - For interactive form validation
 
-## Server-Side GraphQL Setup
+> [!IMPORTANT] > **Client vs Server Components for Forms**: While Server Components excel at data fetching, forms with validation require Client Components (`'use client'`) to handle user interactions and display validation feedback using hooks like [`useActionState`](https://react.dev/reference/react/useActionState).
 
-### Apollo Client for Server Components
+## Dependencies Setup
 
-Since Server Components run on the server, you cannot use Apollo Client's `useQuery` hook. Instead, you'll use the existing Apollo server setup in `src/apollo/server.ts`.
+### Install Zod for Validation
 
-The project already has a server-side Apollo Client configured using the official Apollo Client Next.js integration:
+Install Zod for schema validation and type safety:
 
-```typescript
-// src/apollo/server.ts (already exists)
-import { HttpLink } from '@apollo/client';
-import {
-  registerApolloClient,
-  ApolloClient,
-  InMemoryCache,
-} from '@apollo/client-integration-nextjs';
-
-export const { getClient, query, PreloadQuery } = registerApolloClient(() => {
-  return new ApolloClient({
-    cache: new InMemoryCache(),
-    link: new HttpLink({
-      uri: 'http://localhost:3000/graphql',
-      fetchOptions: {
-        // Next.js-related fetch options regarding caching and revalidation
-      },
-    }),
-  });
-});
+```bash
+npm install zod
 ```
 
-> [!IMPORTANT] > **Using Apollo Client in Server Components**: The project uses the official [Apollo Client Next.js integration](https://github.com/apollographql/apollo-client-integrations/tree/main/packages/nextjs#in-rsc). This provides the `getClient()` and `query()` functions for server-side GraphQL operations.
+Zod provides TypeScript-first schema validation with static type inference, perfect for form validation.
 
-## Peer Routes Setup
+> [!TIP]
+> Learn more about Zod at [zod.dev](https://zod.dev/) for comprehensive schema validation patterns.
 
-### Create Peer Route Structure
+## Project Structure Setup
 
-Create the following file structure and components for peer functionality:
+### Create Clash Creation Route Structure
+
+Set up the file structure for clash creation functionality:
 
 ```
 src/
 ├── app/
-│   └── peers/
-│       ├── page.tsx (main peer list page)
-│       └── [peer-id]/
-│           └── page.tsx (peer detail page)
-└── components/
-    ├── peer-list/
-    │   ├── index.ts
-    │   └── peer-list.tsx
-    └── peer-detail/
-        ├── index.ts
-        └── peer-detail.tsx
+│   └── clashes/
+│       ├── create/
+│       │   └── page.tsx (clash create page)
+│       └── page.tsx (existing clash list)
+├── components/
+│   └── clash-create/
+│       ├── index.ts
+│       └── clash-create.tsx (client component)
+└── domain/
+    └── clashes/
+        ├── actions.ts (server actions)
+        ├── schemas.ts (zod schemas)
+        └── index.ts
 ```
 
-### Component-Based Architecture
+## Form Schema Definition
 
-Create reusable components similar to the existing clash components in your workspace. Follow the established patterns from `src/components/` directory.
+### Create Validation Schema with Zod
 
-#### 1. Create PeerList Component
+Define your form validation schema following the GraphQL `CreateClashInput` type:
 
-```tsx
-// src/components/peer-list/peer-list.tsx
-import { getClient } from '@/apollo/server';
-import { gql } from '@apollo/client';
+```typescript
+// src/domain/clashes/schemas.ts
+import { z } from 'zod';
 
-export default async function PeerList() {
-  // Create GetPeers query for peers list
-  // Use getClient().query() to fetch data
-  // Return grid layout similar to clash cards
-}
+export const createClashSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
+  location: z.string().min(1, 'Location is required'),
+  address: z.string().min(1, 'Address is required'),
+  date: z.string().min(1, 'Date is required'),
+  createdByPeerId: z.number().int().positive('Valid peer ID required'),
+});
+
+export type CreateClashFormData = z.infer<typeof createClashSchema>;
 ```
-
-#### 2. Create PeerDetail Component
-
-```tsx
-// src/components/peer-detail/peer-detail.tsx
-import { getClient } from '@/apollo/server';
-import { gql } from '@apollo/client';
-
-interface PeerDetailProps {
-  peerId: string;
-}
-
-export default async function PeerDetail({ peerId }: PeerDetailProps) {
-  // Create GetPeer query with $id variable
-  // Fetch peer data using getClient().query()
-  // Return peer details layout with back button
-}
-```
-
-#### 3. Update Pages to Use Components
-
-Create simple page components that import and render the peer components:
-
-- **Peer List Page**: Import `PeerList` component and render with page title
-- **Peer Detail Page**: Extract peer ID from params and pass to `PeerDetail` component
-
-### Server Component Benefits
-
-- No `'use client'` directive needed
-- Direct async/await data fetching
-- Better SEO and performance
-- Server-side rendering by default
-
-## GraphQL Schema Exploration
-
-### Explore the Peer API
-
-The GraphQL server provides the following peer-related queries:
-
-1. `peers: [Peer!]!` - Returns a list of all peers
-2. `peer(id: Int!): Peer!` - Returns a specific peer by ID (note: uses `Int!` not `ID!`)
-
-The `Peer` type includes the following fields:
-
-- `id: Int!` - Unique identifier
-- `name: String!` - Full name
-- `pictureUrl: String!` - Profile picture URL
-- `city: String!` - City location
-- `country: String!` - Country location
-- `gender: Gender!` - Gender enum
-- `clashes: [Clash!]!` - Associated clashes
 
 > [!TIP]
-> You can explore the full schema at `http://localhost:3000/graphql` in your GraphQL playground.
+> Use `z.infer<>` to automatically generate TypeScript types from your Zod schemas.
 
-### Query Implementation Hints
+## Server Actions Implementation
 
-The `GetPeers` query should:
+### Create Clash Server Action
 
-- Return a list of peers with basic information
-- Include fields like: `id`, `name`, `pictureUrl`
-- No variables needed (returns all peers)
+Implement the server-side form processing with proper error handling:
 
-The `GetPeer` query should:
+```typescript
+// src/domain/clashes/actions.ts
+'use server';
 
-- Accept an `id` variable of type `Int!` (not `ID!`)
-- Return detailed peer information including `city` and `country`
-- Include additional fields as needed for your UI
-- Handle error cases appropriately
+import { getClient } from '@/apollo/server';
+import { gql } from '@apollo/client';
+import { createClashSchema } from './schemas';
+import { redirect } from 'next/navigation';
 
-> [!TIP]
-> After updating your GraphQL queries, run `npm run codegen` to generate TypeScript types for server-side usage.
+const CREATE_CLASH = gql`
+  mutation CreateClash($input: CreateClashInput!) {
+    createClash(createClashInput: $input) {
+      id
+      title
+    }
+  }
+`;
 
-## Error Handling and Not Found
+export async function createClash(prevState: any, formData: FormData) {
+  // Parse and validate form data with Zod
+  // Return errors if validation fails
+  // Execute GraphQL mutation
+  // Handle success/error cases
+  // Redirect on success
+}
+```
 
-### Custom Not Found Page
+Key implementation points:
 
-Create a custom not found page for invalid peer IDs (`src/app/peers/[peer-id]/not-found.tsx`):
+- Use `'use server'` directive for Server Actions
+- Accept `prevState` as first parameter for [`useActionState`](https://react.dev/reference/react/useActionState) compatibility
+- Validate input with Zod schema using `safeParse`
+- Return error object if validation fails
+- Execute GraphQL mutation with Apollo Client
+- Use [`redirect()`](https://nextjs.org/docs/app/api-reference/functions/redirect) for successful submissions
+
+> [!IMPORTANT] > **Server Actions Security**: Always validate input on the server side, even with client-side validation. Never trust client data directly.
+
+### Export Domain Functions
+
+```typescript
+// src/domain/clashes/index.ts
+export { createClash } from './actions';
+export { createClashSchema, type CreateClashFormData } from './schemas';
+```
+
+## Client Component Implementation
+
+### Create ClashCreate Form Component
+
+Build the interactive form component with validation:
 
 ```tsx
+// src/components/clash-create/clash-create.tsx
+'use client';
+
+import { useActionState } from 'react';
+import { createClash } from '@/domain/clashes';
+
+export default function ClashCreate() {
+  const initialState = { message: '', errors: {} };
+  const [state, formAction, pending] = useActionState(createClash, initialState);
+
+  return (
+    <form action={formAction}>
+      {/* Form fields with validation feedback */}
+      {/* Submit button with loading state */}
+    </form>
+  );
+}
+```
+
+Key features to implement:
+
+- **Server-Side Validation**: Validate using Zod in Server Action
+- **Error Display**: Show field-specific validation errors from server
+- **Loading States**: Use `pending` boolean to disable form during submission
+- **Accessibility**: Proper labels, ARIA attributes, and error associations
+
+## Form Fields and Validation
+
+### Essential Form Fields
+
+Implement these form fields matching the GraphQL schema:
+
+1. **Title** - Text input with length validation
+2. **Description** - Textarea with minimum length requirement
+3. **Location** - Text input for venue name
+4. **Address** - Text input for full address
+5. **Date** - Date input with future date validation
+6. **Created By Peer** - Select dropdown or hidden field
+
+### Server-Side Validation with Zod
+
+Following the [Next.js Forms validation guide](https://nextjs.org/docs/app/guides/forms#form-validation), validate form data on the server using Zod's `safeParse` method:
+
+```typescript
+// In your Server Action (actions.ts)
+export async function createClash(prevState: any, formData: FormData) {
+  const validatedFields = createClashSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    location: formData.get('location'),
+    address: formData.get('address'),
+    date: formData.get('date'),
+    createdByPeerId: Number(formData.get('createdByPeerId')),
+  });
+
+  // Return early if validation fails
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation failed. Please check your inputs.',
+    };
+  }
+
+  // Proceed with mutation using validatedFields.data
+  // ...
+}
+```
+
+### Displaying Validation Errors with useActionState
+
+Use React's [`useActionState`](https://react.dev/reference/react/useActionState) hook to handle form state and display validation errors:
+
+```tsx
+// In your Client Component (clash-create.tsx)
+'use client';
+
+import { useActionState } from 'react';
+import { createClash } from '@/domain/clashes';
+
+export default function ClashCreate() {
+  const initialState = { message: '', errors: {} };
+  const [state, formAction, pending] = useActionState(createClash, initialState);
+
+  return (
+    <form action={formAction}>
+      <div>
+        <label htmlFor="title">Title</label>
+        <input type="text" id="title" name="title" required />
+        {state.errors?.title && <p className="text-red-600 text-sm">{state.errors.title[0]}</p>}
+      </div>
+
+      {/* Other form fields... */}
+
+      <button type="submit" disabled={pending}>
+        {pending ? 'Creating...' : 'Create Clash'}
+      </button>
+
+      {state.message && (
+        <p aria-live="polite" className="text-red-600">
+          {state.message}
+        </p>
+      )}
+    </form>
+  );
+}
+```
+
+> [!TIP]
+> The [`useActionState`](https://react.dev/reference/react/useActionState) hook automatically handles the Server Action response, providing `state` for errors/messages and `pending` for loading states. Learn more in the [Next.js validation errors documentation](https://nextjs.org/docs/app/guides/forms#validation-errors).
+
+## Page Route Implementation
+
+### Create the Clash Create Page
+
+```tsx
+// src/app/clashes/create/page.tsx
+import ClashCreate from '@/components/clash-create';
+
+export default function ClashCreatePage() {
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Create New Clash</h1>
+        <p className="text-gray-600">Fill in the details to create a new clash event.</p>
+      </div>
+      <ClashCreate />
+    </div>
+  );
+}
+```
+
+## Testing and Validation
+
+### Form Testing Checklist
+
+Test these scenarios:
+
+1. **Valid Submission**: All fields filled correctly
+2. **Validation Errors**: Empty required fields, invalid formats
+3. **Server Errors**: Network issues, GraphQL errors
+4. **Loading States**: Form disabled during submission
+5. **Success Flow**: Redirect to clash detail or list
+
+### GraphQL Integration Testing
+
+Verify your `createClash` mutation works:
+
+```graphql
+# Test in GraphQL playground
+mutation {
+  createClash(
+    createClashInput: {
+      title: "Test Clash"
+      description: "Test description for clash"
+      location: "Test Location"
+      address: "123 Test Street"
+      date: "2024-12-25T10:00:00Z"
+      createdByPeerId: 1
+    }
+  ) {
+    id
+    title
+  }
+}
+```
+
+## Navigation and Integration
+
+### Add Create Button to Clash List
+
+Update your clash list page to include a "Create Clash" button:
+
+```tsx
+// Add to clash list page
 import Link from 'next/link';
 
-export default function PeerNotFound() {
-  return (
-    <div className="max-w-4xl mx-auto text-center py-12">
-      <h1 className="text-3xl font-bold mb-4">Peer Not Found</h1>
-      <p className="text-gray-600 mb-6">
-        The peer you're looking for doesn't exist or has been removed.
-      </p>
-      <Link
-        href="/peers"
-        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-4 py-2 rounded-md border border-blue-200 hover:border-blue-300 transition-colors duration-200"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Peers
-      </Link>
-    </div>
-  );
-}
+<Link
+  href="/clashes/create"
+  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+>
+  Create New Clash
+</Link>;
 ```
 
-## Loading States with loading.tsx
+### Success Redirect Strategy
 
-Since Server Components handle data fetching during server rendering, loading states are shown while the server is processing the request.
+After successful creation, use [`redirect()`](https://nextjs.org/docs/app/api-reference/functions/redirect) to navigate to:
 
-### Peer List Loading (`src/app/peers/loading.tsx`)
+- **Clash Detail**: `redirect(\`/clashes/${newClash.id}\`)`
+- **Clash List**: `redirect('/clashes')`
+- **Success Page**: Custom confirmation page
+
+## Form UI Template
+
+Here's a responsive form template with Tailwind CSS styling to get you started:
 
 ```tsx
-export default function PeersLoading() {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Peers</h1>
+// Responsive form container with card styling
+'use client';
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-3 shadow-sm bg-white">
-              <div className="bg-gray-300 h-48 w-full rounded-md"></div>
-              <div className="h-6 bg-gray-300 rounded w-3/4"></div>
-              <div className="mt-auto flex justify-end">
-                <div className="h-8 bg-gray-300 rounded w-24"></div>
-              </div>
+import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClash } from '@/domain/clashes';
+
+export default function ClashCreate() {
+  const router = useRouter();
+  const initialState = { message: '', errors: {} };
+  const [state, formAction, pending] = useActionState(createClash, initialState);
+
+  return (
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+        <form action={formAction} className="space-y-6">
+          {/* Form field group example */}
+          <div className="space-y-2">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     disabled:bg-gray-100 disabled:cursor-not-allowed"
+              disabled={pending}
+            />
+            {state.errors?.title && (
+              <p className="text-sm text-red-600 mt-1" role="alert">
+                {state.errors.title[0]}
+              </p>
+            )}
+          </div>
+
+          {/* Textarea example */}
+          <div className="space-y-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              rows={4}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     disabled:bg-gray-100"
+              disabled={pending}
+            />
+            {state.errors?.description && (
+              <p className="text-sm text-red-600 mt-1" role="alert">
+                {state.errors.description[0]}
+              </p>
+            )}
+          </div>
+
+          {/* Two-column layout for tablet and desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                Location <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="location"
+                name="location"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                       focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={pending}
+              />
+              {state.errors?.location && (
+                <p className="text-sm text-red-600 mt-1">{state.errors.location[0]}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                id="date"
+                name="date"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                       focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={pending}
+              />
+              {state.errors?.date && (
+                <p className="text-sm text-red-600 mt-1">{state.errors.date[0]}</p>
+              )}
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
 
-### Peer Detail Loading (`src/app/peers/[peer-id]/loading.tsx`)
-
-```tsx
-export default function PeerDetailLoading() {
-  return (
-    <div className="max-w-4xl mx-auto animate-pulse">
-      <div className="mb-6">
-        <div className="h-10 bg-gray-300 rounded w-32 mb-4"></div>
-        <div className="h-8 bg-gray-300 rounded w-48"></div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-gray-300 h-96 rounded-lg"></div>
-        <div className="space-y-4">
-          <div className="h-8 bg-gray-300 rounded w-3/4"></div>
-          <div className="bg-gray-100 p-4 rounded-lg">
-            <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-4/5"></div>
+          {/* Form actions */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex-1 sm:flex-none px-6 py-2.5 bg-blue-600 text-white 
+                     font-medium rounded-md hover:bg-blue-700 
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                     disabled:opacity-50 disabled:cursor-not-allowed
+                     transition-colors duration-200"
+            >
+              {pending ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Creating...
+                </span>
+              ) : (
+                'Create Clash'
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 sm:flex-none px-6 py-2.5 border border-gray-300 
+                     text-gray-700 font-medium rounded-md hover:bg-gray-50
+                     focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
           </div>
-        </div>
+
+          {/* Global error message */}
+          {state.message && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600" aria-live="polite">
+                {state.message}
+              </p>
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );
 }
 ```
 
-## Testing Server Components
+Key styling features:
 
-After implementing the basic structure:
-
-1. Navigate to `http://localhost:3001/peers` - should display the peer list
-2. Click any "View Profile" link - should navigate to `/peers/[peer-id]`
-3. Test direct URL access like `/peers/123` - should work or show not found
-4. Verify that page source shows server-rendered content
-5. Check that no client-side JavaScript is loaded for the peer components
-
-> [!TIP]
-> Use "View Page Source" in your browser to verify that content is server-rendered and visible in the HTML source.
+- **Responsive Grid**: Single column on mobile, two columns on tablet/desktop
+- **Focus States**: Clear visual feedback with ring utilities
+- **Loading State**: Animated spinner and disabled state during submission
+- **Error Display**: Red text with proper spacing and ARIA attributes
+- **Accessible**: Proper labels, required indicators, and ARIA live regions
 
 ## File Structure Summary
 
-After completing this task, your file structure should look like:
+After completing this task, your enhanced file structure will include:
 
 ```
 src/
-├── apollo/
-│   └── server.ts (existing Apollo Client setup)
 ├── app/
-│   ├── clashes/ (existing)
-│   └── peers/
-│       ├── page.tsx (Server Component)
-│       ├── loading.tsx
-│       └── [peer-id]/
-│           ├── page.tsx (Server Component)
-│           ├── loading.tsx
-│           └── not-found.tsx
-└── components/ (existing components)
+│   └── clashes/
+│       ├── create/
+│       │   └── page.tsx
+│       └── page.tsx (existing)
+├── components/
+│   └── clash-create/
+│       ├── index.ts
+│       └── clash-create.tsx
+├── domain/
+│   └── clashes/
+│       ├── actions.ts
+│       ├── schemas.ts
+│       └── index.ts
+└── apollo/ (existing)
 ```
+
+## Key Learning Outcomes
+
+By completing this workshop, you'll master:
+
+- **[Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)** for secure form processing
+- **[Form Validation](https://nextjs.org/docs/app/guides/forms#validation)** with Zod and TypeScript
+- **Client-Server Communication** patterns in Next.js App Router
+- **Error Handling** for both client and server-side validation
+- **Progressive Enhancement** principles for form accessibility
+
+> [!IMPORTANT] > **Next.js Forms Documentation**: This workshop follows the official [Next.js Forms Guide](https://nextjs.org/docs/app/guides/forms). Refer to it for additional patterns and advanced use cases.
