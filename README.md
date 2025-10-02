@@ -10,7 +10,8 @@ Before proceeding, familiarize yourself with Next.js form handling concepts:
 - **[Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)** - Server-side form processing and mutations
 - **[Client Components](https://nextjs.org/docs/app/building-your-application/rendering/client-components)** - For interactive form validation
 
-> [!IMPORTANT] > **Client vs Server Components for Forms**: While Server Components excel at data fetching, forms with validation require Client Components (`'use client'`) to handle user interactions and display validation feedback using hooks like [`useActionState`](https://react.dev/reference/react/useActionState).
+> [!IMPORTANT]
+> **Client vs Server Components for Forms**: While Server Components excel at data fetching, forms with validation require Client Components (`'use client'`) to handle user interactions and display validation feedback using hooks like [`useActionState`](https://react.dev/reference/react/useActionState).
 
 ## Dependencies Setup
 
@@ -118,7 +119,8 @@ Key implementation points:
 - Execute GraphQL mutation with Apollo Client
 - Use [`redirect()`](https://nextjs.org/docs/app/api-reference/functions/redirect) for successful submissions
 
-> [!IMPORTANT] > **Server Actions Security**: Always validate input on the server side, even with client-side validation. Never trust client data directly.
+> [!IMPORTANT]
+> **Server Actions Security**: Always validate input on the server side, even with client-side validation. Never trust client data directly.
 
 ### Export Domain Functions
 
@@ -533,4 +535,5 @@ By completing this workshop, you'll master:
 - **Error Handling** for both client and server-side validation
 - **Progressive Enhancement** principles for form accessibility
 
-> [!IMPORTANT] > **Next.js Forms Documentation**: This workshop follows the official [Next.js Forms Guide](https://nextjs.org/docs/app/guides/forms). Refer to it for additional patterns and advanced use cases.
+> [!IMPORTANT]
+> **Next.js Forms Documentation**: This workshop follows the official [Next.js Forms Guide](https://nextjs.org/docs/app/guides/forms). Refer to it for additional patterns and advanced use cases.
