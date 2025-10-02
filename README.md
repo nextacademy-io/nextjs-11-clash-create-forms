@@ -68,7 +68,9 @@ export const createClashSchema = z.object({
   location: z.string().min(1, 'Location is required'),
   address: z.string().min(1, 'Address is required'),
   date: z.string().min(1, 'Date is required'),
-  createdByPeerId: z.number().int().positive('Valid peer ID required'),
+  pictureUrl: z.string().url('Must be a valid URL'),
+  participantIds: z.array(z.string()).default([]),
+  createdByPeerId: z.string().min(1, 'Valid peer ID required'),
 });
 
 export type CreateClashFormData = z.infer<typeof createClashSchema>;
@@ -174,7 +176,9 @@ Implement these form fields matching the GraphQL schema:
 3. **Location** - Text input for venue name
 4. **Address** - Text input for full address
 5. **Date** - Date input with future date validation
-6. **Created By Peer** - Select dropdown or hidden field
+6. **Picture URL** - Text input for clash image URL
+7. **Participant IDs** - Optional: multi-select or comma-separated input (defaults to empty array)
+8. **Created By Peer** - Select dropdown or hidden field
 
 ### Server-Side Validation with Zod
 
